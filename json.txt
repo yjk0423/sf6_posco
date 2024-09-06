@@ -1,0 +1,30 @@
+[
+    {
+        "name": "John Doe",
+        "position": "Software Engineer",
+        "department": "Development",
+        "check_in": "2024-08-13T08:30:00",
+        "check_out": "2024-08-13T17:30:00"
+    },
+    {
+        "name": "Jane Smith",
+        "position": "Project Manager",
+        "department": "Project Management",
+        "check_in": "2024-08-13T09:00:00",
+        "check_out": "2024-08-13T18:00:00"
+    },
+    {
+        "name": "Michael Johnson",
+        "position": "Data Analyst",
+        "department": "Data Science",
+        "check_in": "2024-08-13T08:45:00",
+        "check_out": "2024-08-13T17:45:00"
+    },
+    {
+        "name": "Emily Davis",
+        "position": "UX Designer",
+        "department": "Design",
+        "check_in": "2024-08-13T09:15:00",
+        "check_out": "2024-08-13T18:15:00"
+    }
+]

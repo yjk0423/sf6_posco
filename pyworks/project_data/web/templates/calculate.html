@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>서버에서 데이터 받기</title>
+</head>
+<body>
+
+<header>
+    <nav>
+        <a href="/">home</a>
+        <a href="/season">계절</a>
+        <a href="/loop">반복/조건</a>
+        <a href="/calculate">짝수/홀수 판정</a>
+    </nav>
+</header>
+<section>
+    <h2>짝수 홀수</h2>
+    <form action="calculate" method="post">
+        {%if err_msg %}
+            <p style="color:red;"> {{err_msg}} </p>
+        {% endif %}
+        <label>숫자 입력</label>
+        <input type="text" name="num" placeholder="정수를 입력하세요">
+        <input type="submit" id="query" name="query">
+    </form>
+</section>
+</body>
+</html>

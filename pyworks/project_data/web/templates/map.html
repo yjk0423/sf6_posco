@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seoul Map</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            background-image: url('./static/minions.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+        }
+        #button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        button {
+            margin: 0 5px;
+        }
+        #container {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+        }
+        #map {
+            height: 400px;
+            width: 80%;
+        }
+        #sorted-data {
+            margin-top: 20px;
+            width: 15%;
+            padding-right: 10px;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white; /* 배경을 완전한 하얀색으로 변경 */
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+            color: black; /* 글자를 검정색으로 변경 */
+        }
+        th {
+            background-color: white; /* 헤더 배경도 하얀색으로 변경 */
+            color: black; /* 헤더 글자 색상도 검정색으로 변경 */
+        }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 999;
+        }
+        #graph-container {
+            margin-top: 20px;
+            display: none; /* 그래프는 처음에 숨김 */
+        }
+        #popup {
+            display: none; /* 팝업은 처음에 숨김 */
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div id="button-container">
+    <button class="banana-button" id="20241">24년도 1분기</button>
+    <button class="banana-button" id="20242">24년도 2분기</button>
+    <button class="banana-button" id="20243">24년도 3분기</button>
+    <button class="banana-button" id="20244">24년도 4분기</button>
+</div>
+
+<div id="dropdown-container" style="background-color: white; padding: 3px; border-radius: 8px;">
+    <label for="dropdown1">24년도 분기:</label>
+    <select id="dropdown1">
+        <option value="20241">1분기</option>
+        <option value="20242">2분기</option>
+        <option value="20243">3분기</option>
+        <option value="20244">4분기</option>
+    </select>
+
+    <label for="dropdown2">서울특별시 지역구:</label>
+    <select id="dropdown2">
+        <option value="금천구">금천구</option>
+        <option value="중랑구">중랑구</option>
+        <option value="관악구">관악구</option>
+        <option value="구로구">구로구</option>
+        <option value="용산구">용산구</option>
+        <option value="노원구">노원구</option>
+        <option value="동작구">동작구</option>
+        <option value="종로구">종로구</option>
+        <option value="성북구">성북구</option>
+        <option value="서초구">서초구</option>
+        <option value="은평구">은평구</option>
+        <option value="송파구">송파구</option>
+        <option value="성동구">성동구</option>
+        <option value="강북구">강북구</option>
+        <option value="강서구">강서구</option>
+        <option value="도봉구">도봉구</option>
+        <option value="광진구">광진구</option>
+        <option value="마포구">마포구</option>
+        <option value="강동구">강동구</option>
+        <option value="강남구">강남구</option>
+        <option value="양천구">양천구</option>
+        <option value="중구">중구</option>
+        <option value="서대문구">서대문구</option>
+        <option value="영등포구">영등포구</option>
+        <option value="동대문구">동대문구</option>
+    </select>
+    <button class="banana-button" id="select_search">검색</button>
+</div>
+
+<div id="container">
+    <div id="sorted-data"></div>
+    <div id="map"></div>
+</div>
+
+<div id="graph-container">
+    <h2>업종별 매출 그래프</h2>
+    <img id="result-graph" src="" alt="업종별 매출 그래프">
+</div>
+
+<div id="overlay"></div>
+<div id="popup"></div>
+
+<script>
+$(document).ready(function() {
+    // 버튼 클릭 이벤트
+    $('#button-container button').on('click', function() {
+        const buttonId = $(this).attr('id');
+        generateMap(buttonId);
+    });
+
+    document.getElementById('select_search').addEventListener('click', async function() {
+        const selectedQuarter = document.getElementById('dropdown1').value;
+        const selectedDistrict = document.getElementById('dropdown2').value;
+
+        const requestData = {
+            year_id: selectedQuarter,
+            select_gu_id: selectedDistrict,
+        };
+
+        try {
+            const response = await fetch('/select_map', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error('네트워크 응답이 실패했습니다.');
+            }
+
+            const responseData = await response.json();
+            console.log('서버 응답:', responseData);
+
+            // 그래프 이미지를 팝업으로 표시
+            if (responseData.img_tag) {
+                // 지역구 이름도 함께 전달하여 팝업 열기
+                showPopup(selectedQuarter,selectedDistrict, responseData.img_tag);
+            } else {
+                $('#graph-container').hide(); // 그래프 컨테이너 숨기기
+            }
+        } catch (error) {
+            console.error('문제가 발생했습니다:', error);
+        }
+    });
+});
+
+async function generateMap(buttonId) {
+    const requestData = {
+        button_id: buttonId
+    };
+
+    const response = await fetch('/generate_map', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    });
+
+    const data = await response.json();
+    $('#map').html(data.map_html);
+    displaySortedData(data.sorted_df);
+    addDistrictClickEvent();
+}
+
+function addDistrictClickEvent() {
+    const parentContainer = $('#map');
+    parentContainer.on('click', '[id]', function(event) {
+        const districtName = $(this).attr('id'); // ID를 지역구 이름으로 사용
+        console.log(`District clicked: ${districtName}`);
+        handleDistrictClick(districtName, event); // 클릭 이벤트 핸들러 호출
+    });
+}
+
+function displaySortedData(sortedData) {
+    const table = $('<table></table>');
+    const headerRow = $('<tr></tr>');
+
+    const headers = ['순위', '지역구', '상승률'];
+    headers.forEach(header => {
+        const th = $('<th></th>').text(header);
+        headerRow.append(th);
+    });
+    table.append(headerRow);
+
+    sortedData.slice(0, 10).forEach((item, index) => {
+        const row = $('<tr></tr>');
+        const formattedAmount = (item.금액).toFixed(2) + '%';
+
+        row.html(`<td>${index + 1}</td><td id="${item.지역구}">${item.지역구}</td><td>${formattedAmount}</td>`);
+        table.append(row);
+    });
+
+    $('#sorted-data').html('').append(table);
+}
+
+function handleDistrictClick(districtName, event) {
+    console.log(`Element clicked: ${districtName}`);
+    showPopup(districtName, event);
+}
+
+function showPopup(selectedQuarter,districtName, graphImageUrl, event) {
+    const popup = $('#popup');
+    const overlay = $('#overlay');
+
+    // 팝업에 지역구 이름과 그래프 이미지를 추가
+    popup.html(`
+        <h3>${selectedQuarter}분기 구이름: ${districtName}</h3>
+        <img src="${graphImageUrl}" alt="업종별 매출 그래프" style="max-width: 100%; height: auto;">
+    `);
+
+    // 팝업의 크기 설정
+    const popupWidth = 1200;  // 가로 크기
+    const popupHeight = 600; // 세로 크기
+
+    // 화면 중앙 계산
+    const left = (window.innerWidth / 2) - (popupWidth / 2);
+    const top = (window.innerHeight / 2) - (popupHeight / 2);
+
+    popup.css({
+        display: 'block',
+        position: 'fixed', // Fixed로 변경하여 페이지 스크롤에 영향을 받지 않도록 함
+        width: `${popupWidth}px`,   // 가로 크기
+        height: `${popupHeight}px`, // 세로 크기
+        left: `${left}px`,          // 중앙 위치의 왼쪽 좌표
+        top: `${top}px`,            // 중앙 위치의 위쪽 좌표
+        padding: '20px',            // 패딩 추가
+        boxSizing: 'border-box',     // 박스 모델 설정
+        backgroundColor: '#fff',    // 배경색 설정
+        border: '2px solid #ccc',   // 테두리 추가
+        borderRadius: '8px',        // 모서리 둥글게
+        zIndex: 1000                // 다른 요소들 위에 표시
+    });
+
+    overlay.css({ display: 'block' }); // 오버레이 표시
+}
+
+$(document).on('click', '#overlay', function() {
+    $('#popup').hide();
+    $('#overlay').hide();
+});
+</script>
+
+</body>
+</html>
